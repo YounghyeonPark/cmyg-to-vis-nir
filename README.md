@@ -177,7 +177,7 @@ If you find this work or code useful for your research or applications, please c
 
 ### Related US Patent
 - **U.S. Patent No. 10,027,933 B2**: *"Method and apparatus for outputting images"*
-  - **Inventors**: Kwanghyun Won, Changyoon Kim, Byeungwoo Jeon, Khanh Quoc Dinh, Hyunjong Shim, Seunghwan Lee
+  - **Inventors**: Kwang-Hyun Won, Chan-Yul Kim, Byeung-woo Jeon, Khanh Quoc DINH, Young-hyeon PARK, Hiuk-Jae Shim, Sun-Il Lee
   - **Assignee**: Samsung Electronics Co., Ltd.
   - **Grant Date**: July 17, 2018
   - **Patent Link**: [US10027933B2 (Google Patents)](https://patents.google.com/patent/US10027933B2/en)
