@@ -9,11 +9,11 @@ from .denoising import guided_filter
 from .separation import convert_cmyg_to_rgb
 from .utils import advanced_white_balance
 
-def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, gamma=0.75):
+def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.55, gamma=0.8, sat_boost=1.6):
     """
-    High-SNR Luminance Guided Low-Light Image Enhancement.
-    Fuses high-SNR mixed CMYG luminance (Y) with separated chromaticity (Cr, Cb)
-    to produce crystal-clear, noise-free enhanced visible RGB images.
+    High-SNR Luminance Guided & Vibrant Chrominance Boost Low-Light Image Enhancement.
+    Fuses high-SNR mixed CMYG luminance (Y) with adaptively boosted chrominance (Cr, Cb)
+    to produce crystal-clear, vividly color-enhanced low-light visible RGB images.
     
     Args:
         rgb_img: Separated visible RGB image (float64 [0, 1])
@@ -21,9 +21,10 @@ def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, gamma=0.
         mixed_rgb: CMYG raw mixed reference image (float64 [0, 1])
         alpha: Luminance fusion weight
         gamma: Gamma correction factor for lowlight Y
+        sat_boost: Color saturation boost multiplier
         
     Returns:
-        enhanced_rgb: Crystal-clear, high-contrast enhanced visible RGB image (float64 [0, 1])
+        enhanced_rgb: High-contrast, rich-colored enhanced visible RGB image (float64 [0, 1])
     """
     sep_rgb = np.clip(rgb_img.astype(np.float64), 0.0, 1.0)
     
@@ -45,28 +46,39 @@ def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, gamma=0.
     cb_sep = sep_yuv[:, :, 2]
     
     # 3. Guided Denoising on Chrominance Channels (Cr, Cb) using Y_mixed as guide
-    cr_filtered = guided_filter(y_mixed, cr_sep, radius=12, eps=1e-3)
-    cb_filtered = guided_filter(y_mixed, cb_sep, radius=12, eps=1e-3)
+    cr_filtered = guided_filter(y_mixed, cr_sep, radius=10, eps=1e-3)
+    cb_filtered = guided_filter(y_mixed, cb_sep, radius=10, eps=1e-3)
     
-    # 4. Adaptive Luminance Scaling for Low-Light Scenes
+    # 4. Controlled Luminance Scaling for Low-Light Scenes
     mean_y = np.mean(y_mixed)
-    if mean_y > 0 and mean_y < 0.18:
-        target_y = min(mean_y * 3.5, 0.5)
+    if mean_y > 0 and mean_y < 0.2:
+        target_y = min(mean_y * 2.8, 0.35)
         y_enhanced = np.power(y_mixed / (mean_y + 1e-4) * target_y, gamma)
     else:
         y_enhanced = y_mixed
         
     y_enhanced = np.clip(y_enhanced, 0.0, 1.0)
     
-    # 5. Reconstruct YCrCb -> RGB
+    # 5. Adaptive Chrominance Boost (Scales Cr/Cb relative to luminance gain)
+    lum_boost = np.clip((y_enhanced + 1e-3) / (y_mixed + 1e-3), 1.0, 2.5)
+    color_gain = np.power(lum_boost, 0.5) * sat_boost
+    
+    cr_boosted = np.clip(0.5 + (cr_filtered - 0.5) * color_gain, 0.0, 1.0)
+    cb_boosted = np.clip(0.5 + (cb_filtered - 0.5) * color_gain, 0.0, 1.0)
+    
+    # 6. Reconstruct YCrCb -> RGB
     comb_yuv = np.zeros_like(mixed_yuv)
     comb_yuv[:, :, 0] = y_enhanced
-    comb_yuv[:, :, 1] = np.clip(cr_filtered, 0.0, 1.0)
-    comb_yuv[:, :, 2] = np.clip(cb_filtered, 0.0, 1.0)
+    comb_yuv[:, :, 1] = cr_boosted
+    comb_yuv[:, :, 2] = cb_boosted
     
-    comb_yuv_u8 = (comb_yuv * 255.0).astype(np.uint8)
-    comb_rgb = cv2.cvtColor(comb_yuv_u8, cv2.COLOR_YCrCb2RGB).astype(np.float64) / 255.0
+    comb_rgb = cv2.cvtColor((comb_yuv * 255.0).astype(np.uint8), cv2.COLOR_YCrCb2RGB).astype(np.float64) / 255.0
     
-    # 6. Advanced Auto White Balance
-    final_rgb = advanced_white_balance(comb_rgb, method='shades_of_gray')
+    # 7. HSV Color Saturation Enhancement
+    hsv = cv2.cvtColor((comb_rgb * 255.0).astype(np.uint8), cv2.COLOR_RGB2HSV).astype(np.float64) / 255.0
+    hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.5, 0.0, 1.0) # Vivid natural color saturation
+    vibrant_rgb = cv2.cvtColor((hsv * 255.0).astype(np.uint8), cv2.COLOR_HSV2RGB).astype(np.float64) / 255.0
+    
+    # 8. Advanced Auto White Balance
+    final_rgb = advanced_white_balance(vibrant_rgb, method='shades_of_gray')
     return np.clip(final_rgb, 0.0, 1.0)
