@@ -7,6 +7,12 @@ Official implementation (Python & MATLAB) of the paper:
 
 ---
 
+<p align="center">
+  <img src="docs/overview.jpg" alt="CMYG to VIS-NIR Overview" width="100%">
+</p>
+
+---
+
 ## 📌 Overview
 
 This repository provides a method to acquire and separate **Visible (RGB)** and **Near-Infrared (NIR)** images simultaneously from a single image sensor equipped with a **CMYG (Cyan, Magenta, Yellow, Green)** Color Filter Array (CFA) without an IR cut filter (hot-mirror).
@@ -42,6 +48,8 @@ This repository provides a method to acquire and separate **Visible (RGB)** and 
 ├── LICENSE                    # MIT License
 ├── requirements.txt           # Top-level Python dependencies
 ├── .gitignore                 # Output/temporary file filters
+├── docs/                      # Teaser overview images & figures
+│   └── overview.jpg
 │
 ├── python/                    # Python Implementation
 │   ├── cmyg_separation/       # Modular Python Package
