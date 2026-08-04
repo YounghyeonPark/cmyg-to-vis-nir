@@ -13,7 +13,7 @@ from .utils import (
 )
 from .metrics import calculate_psnr, calculate_mse, calculate_evcc
 from .epfl_separation import separate_rgb_nir_epfl
-from .lowlight_enhancement import enhance_lowlight_image
+from .lowlight_enhancement import enhance_lowlight_image, lowlight_region_colorcorrection
 
 __all__ = [
     'interpolate_cmyg',
@@ -30,5 +30,6 @@ __all__ = [
     'calculate_mse',
     'calculate_evcc',
     'separate_rgb_nir_epfl',
-    'enhance_lowlight_image'
+    'enhance_lowlight_image',
+    'lowlight_region_colorcorrection'
 ]
