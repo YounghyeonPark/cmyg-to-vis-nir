@@ -40,6 +40,16 @@ This repository provides a method to acquire and separate **Visible (RGB)** and 
 
 ---
 
+## 📷 Qualitative Visual Results
+
+Below are representative separation results produced across multiple indoor and outdoor real-world scenes (*Objects, Piggybank, Sunlight Plants, Fruits*):
+
+<p align="center">
+  <img src="docs/results_gallery.jpg" alt="Qualitative Visual Results Gallery" width="100%">
+</p>
+
+---
+
 ## 📁 Repository Structure
 
 ```text
@@ -48,8 +58,9 @@ This repository provides a method to acquire and separate **Visible (RGB)** and 
 ├── LICENSE                    # MIT License
 ├── requirements.txt           # Top-level Python dependencies
 ├── .gitignore                 # Output/temporary file filters
-├── docs/                      # Teaser overview images & figures
-│   └── overview.jpg
+├── docs/                      # Teaser overview images & visual gallery
+│   ├── overview.jpg
+│   └── results_gallery.jpg
 │
 ├── python/                    # Python Implementation
 │   ├── cmyg_separation/       # Modular Python Package
@@ -57,8 +68,13 @@ This repository provides a method to acquire and separate **Visible (RGB)** and 
 │   │   ├── demosaic.py        # 2x2 CMYG Bayer pattern demosaicing
 │   │   ├── separation.py      # Matrix inverse RGB & NIR signal separation
 │   │   ├── denoising.py       # Guided Filter & Wiener filter
-│   │   └── utils.py           # Auto White Balance & I/O helpers
+│   │   ├── metrics.py         # PSNR, MSE, EVCC metrics
+│   │   ├── epfl_separation.py # EPFL baseline separation (SL0)
+│   │   └── lowlight_enhancement.py # NIR-assisted low-light enhancement
 │   ├── demo.py                # Standalone Python demo script
+│   ├── run_evaluation.py      # SKKU vs EPFL benchmark script
+│   ├── run_hyperspectral_sim.py # Spectral sensitivity simulation
+│   ├── run_lowlight_enhancement.py # Low-light enhancement demo
 │   └── requirements.txt       # Package requirements
 │
 └── matlab/                    # Complete MATLAB Implementation
@@ -81,10 +97,12 @@ This repository provides a method to acquire and separate **Visible (RGB)** and 
    pip install -r requirements.txt
    ```
 
-2. **Run Python Demo**:
+2. **Run Python Demos**:
    ```bash
    cd python
    python demo.py
+   python run_evaluation.py
+   python run_lowlight_enhancement.py
    ```
 
 3. **Python Code Example**:
