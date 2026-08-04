@@ -1,0 +1,93 @@
+
+HM software: Encoder Version [15.0_RExt8.1][Windows][VS 1600][64 bit] 
+
+
+Input          File               : ..\org\minifan_rgb_nir(2frames_awb).rgb
+Bitstream      File               : str\lowdelay_main_rext_minifan_rgb_nir(2frames_awb)_2576x1920_2_QP37.bin
+Reconstruction File               : rec\lowdelay_main_rext_minifan_rgb_nir(2frames_awb)_2576x1920_2_QP37.rgb
+Real     Format                   : 2576x1920 2Hz
+Internal Format                   : 2576x1920 2Hz
+Sequence PSNR output              : Linear average only
+Sequence MSE output               : Disabled
+Frame MSE output                  : Disabled
+Frame/Field                       : Frame based coding
+Frame index                       : 0 - 1 (2 frames)
+Profile                           : main-RExt (main_444_10)
+CU size / depth                   : 64 / 4
+RQT trans. size (min / max)       : 4 / 32
+Max RQT depth inter               : 3
+Max RQT depth intra               : 3
+Min PCM size                      : 8
+Motion search range               : 64
+Intra period                      : -1
+Decoding refresh type             : 0
+QP                                : 37.00
+Max dQP signaling depth           : 0
+Cb QP Offset                      : 0
+Cr QP Offset                      : 0
+Max CU chroma QP adjustment depth : -1
+QP adaptation                     : 0 (range=0)
+GOP size                          : 4
+Input bit depth                   : (Y:8, C:8)
+MSB-extended bit depth            : (Y:8, C:8)
+Internal bit depth                : (Y:10, C:10)
+PCM sample bit depth              : (Y:8, C:8)
+Extended precision processing     : Disabled
+Intra reference smoothing         : Enabled
+Implicit residual DPCM            : Enabled
+Explicit residual DPCM            : Enabled
+Residual rotation                 : Enabled
+Single significance map context   : Enabled
+Cross-component prediction        : Enabled (encoder-side-residual-based estimate)
+High-precision prediction weight  : Enabled
+Golomb-Rice parameter adaptation  : Enabled
+CABAC bypass bit alignment        : Disabled
+Sao Luma Offset bit shifts        : 0
+Sao Chroma Offset bit shifts      : 0
+Cost function:                    : Lossy coding (default)
+RateControl                       : 0
+Max Num Merge Candidates          : 5
+
+TOOL CFG: IBD:1 HAD:1 RDQ:1 RDQTS:1 RDpenalty:0 SQP:0 ASR:0 FEN:1 ECU:0 FDM:1 CFM:0 ESD:0 RQT:1 TransformSkip:1 TransformSkipFast:1 TransformSkipLog2MaxSize:2 Slice: M=0 SliceSegment: M=0 CIP:0 SAO:1 PCM:0 TransQuantBypassEnabled:0 WPP:0 WPB:0 PME:2  WaveFrontSynchro:0 WaveFrontSubstreams:1 ScalingList:0 TMVPMode:1 AQpS:0 SignBitHidingFlag:1 RecalQP:0
+
+RExt Non-environment-variable-controlled macros set as follows: 
+
+                                RExt__DECODER_DEBUG_BIT_STATISTICS =   0
+                                      RExt__HIGH_BIT_DEPTH_SUPPORT =   0
+                            RExt__HIGH_PRECISION_FORWARD_TRANSFORM =   0
+                                  RExt__O0043_BEST_EFFORT_DECODING =   0
+                      RExt__BACKWARDS_COMPATIBILITY_HM_TICKET_1149 =   1
+                      RExt__BACKWARDS_COMPATIBILITY_HM_TICKET_1298 =   0
+           RExt__BACKWARDS_COMPATIBILITY_RBSP_EMULATION_PREVENTION =   0
+             RExt__BACKWARDS_COMPATIBILITY_MOTION_ESTIMATION_R0105 =   1
+
+                   Input ChromaFormatIDC =   4:4:4
+       Output (internal) ChromaFormatIDC =   4:4:4
+
+POC    0 TId: 0 ( I-SLICE, nQP 37 QP 37 )      39912 bits [Y 48.8824 dB    U 43.9683 dB    V 46.9830 dB] [ET    39 ] [L0 ] [L1 ]
+POC    1 TId: 0 ( B-SLICE, nQP 40 QP 40 )       9824 bits [Y 43.0816 dB    U 46.8265 dB    V 46.5708 dB] [ET   109 ] [L0 0 ] [L1 0 ]
+
+
+SUMMARY --------------------------------------------------------
+	Total Frames |   Bitrate     Y-PSNR    U-PSNR    V-PSNR    YUV-PSNR 
+	        2    a      49.7360   45.9820   45.3974   46.7769   45.6055
+
+
+I Slices--------------------------------------------------------
+	Total Frames |   Bitrate     Y-PSNR    U-PSNR    V-PSNR    YUV-PSNR 
+	        1    i      79.8240   48.8824   43.9683   46.9830   46.1340
+
+
+P Slices--------------------------------------------------------
+	Total Frames |   Bitrate     Y-PSNR    U-PSNR    V-PSNR    YUV-PSNR 
+	        0    p      -1.#IND   -1.#IND   -1.#IND   -1.#IND   -1.#IND
+
+
+B Slices--------------------------------------------------------
+	Total Frames |   Bitrate     Y-PSNR    U-PSNR    V-PSNR    YUV-PSNR 
+	        1    b      19.6480   43.0816   46.8265   46.5708   45.1345
+
+RVM: 0.000
+Bytes written to file: 6236 (49.888 kbps)
+
+ Total Time:      148.038 sec.

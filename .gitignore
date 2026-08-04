@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Output directories & test results
+python_output/
+matlab_output/
+*.jpg
+*.jpeg
+*.png
+*.tiff
+*.tif
+!samples/*.jpg
+!samples/*.pgm
+
+# Data files & zip archives
+*.zip
+*.mat
+*.NEF
+*.pgm
+
+# MATLAB temporary files
+*.asv
+*.m~
+slprj/
+*.mex*
+
+# Environment & IDEs
+.vscode/
+.idea/
+.DS_Store
+*.swp

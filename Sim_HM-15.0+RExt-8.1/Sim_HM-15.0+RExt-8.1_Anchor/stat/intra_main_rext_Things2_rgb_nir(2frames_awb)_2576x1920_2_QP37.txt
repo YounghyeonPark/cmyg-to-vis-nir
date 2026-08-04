@@ -1,0 +1,6 @@
+
+HM software: Encoder Version [15.0_RExt8.1][Windows][VS 1600][64 bit] 
+
+
+Error: found fewer Reference Picture Sets than GOPSize
+Error: Invalid GOP structure given

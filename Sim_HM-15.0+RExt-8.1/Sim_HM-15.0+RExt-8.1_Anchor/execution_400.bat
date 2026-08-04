@@ -1,0 +1,10 @@
+ECHO OFF
+CALL "enc_lowdelay_main_rext - book_mixed_400.bat"
+CALL "enc_lowdelay_main_rext - flower_mixed_400.bat"
+CALL "enc_lowdelay_main_rext - miniature_mixed_400.bat"
+CALL "enc_lowdelay_main_rext - minifan2_mixed_400.bat"
+CALL "enc_lowdelay_main_rext - minifan_mixed_400.bat"
+CALL "enc_lowdelay_main_rext - nohohon_mixed_400.bat"
+CALL "enc_lowdelay_main_rext - Things2_mixed_400.bat"
+CALL "enc_lowdelay_main_rext - Things_mixed_400.bat"
+CALL "enc_lowdelay_main_rext - treename_mixed_400.bat"
