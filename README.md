@@ -156,10 +156,11 @@ Separated visible RGB images can suffer from low exposure and color cast under c
 
 ---
 
-## 📜 Citation
+## 📜 Citation & Related Patents
 
-If you find this work or code useful for your research, please cite our paper:
+If you find this work or code useful for your research or applications, please cite our paper and patent:
 
+### Academic Paper
 ```bibtex
 @article{park2020acquisition,
   title={An Acquisition Method for Visible and Near Infrared Images from Single CMYG Color Filter Array-Based Sensor},
@@ -173,6 +174,13 @@ If you find this work or code useful for your research, please cite our paper:
   doi={10.3390/s20195578}
 }
 ```
+
+### Related US Patent
+- **U.S. Patent No. 10,027,933 B2**: *"Method and apparatus for outputting images"*
+  - **Inventors**: Keun-Hyung Won, Chang-Yong Kim, Byeungwoo Jeon, Khanh Quoc Dinh, Hyun-Jung Shim, Sung-Hee Lee
+  - **Assignee**: Samsung Electronics Co., Ltd. / Sungkyunkwan University Foundation for Corporate Collaboration
+  - **Grant Date**: July 17, 2018
+  - **Patent Link**: [US10027933B2 (Google Patents)](https://patents.google.com/patent/US10027933B2/en)
 
 ---
 
