@@ -29,7 +29,7 @@ This repository provides a method to acquire and separate **Visible (RGB)** and 
        ▼ (3. Guided Denoising)
 [Denoised RGB & NIR Images] 
        │
-       ▼ (4. Advanced AWB & NIR-Guided Brightness Correction)
+       ▼ (4. Auto White Balance)
 [Final High-Quality Visible RGB + NIR]
 ```
 
@@ -37,19 +37,6 @@ This repository provides a method to acquire and separate **Visible (RGB)** and 
 - **High Sensitivity**: Complementary CMYG filters pass more light and NIR spectrum than traditional RGB filters.
 - **Fast & Lightweight**: Matrix inversion signal transformation and Joint Guided Filtering allow real-time execution.
 - **High Reconstruction Quality**: Minimal color artifact and superior PSNR compared to traditional compressive sensing (SL0) methods.
-
----
-
-## 💡 Visible Brightness & Advanced White Balance Correction
-
-Separated visible RGB images can suffer from low exposure and color cast under complex illuminations. We include an advanced enhancement module:
-1. **Advanced Auto White Balance**: Minkowski $p$-norm based **`Shades of Gray` ($p=6$)** and **`Max-RGB`** algorithms to eliminate illuminant color tint.
-2. **NIR-Guided Adaptive Brightness Correction**: Uses NIR intensity guidance to selectively boost under-exposed dark regions while preventing highlight clipping:
-   $$V_{guided} = V^{\gamma} \cdot \left(1 + \lambda \cdot \text{max}(0, N - V)\right)$$
-
-<p align="center">
-  <img src="docs/brightness_wb_experiment.jpg" alt="Brightness and White Balance Correction Experiment" width="100%">
-</p>
 
 ---
 
@@ -151,6 +138,21 @@ Below are representative separation results produced across multiple indoor and 
    ```matlab
    main_separation
    ```
+
+---
+
+## 💡 Experimental Modules & Extensions
+
+### Visible Brightness & Advanced White Balance Correction
+
+Separated visible RGB images can suffer from low exposure and color cast under complex illuminations. We include an advanced enhancement module:
+1. **Advanced Auto White Balance**: Minkowski $p$-norm based **`Shades of Gray` ($p=6$)** and **`Max-RGB`** algorithms to eliminate illuminant color tint.
+2. **Chromaticity-Preserving NIR-Guided Brightness Correction**: Preserves natural $R/I, G/I, B/I$ chromaticity ratios while adaptively boosting under-exposed dark regions guided by NIR signal:
+   $$V_{guided} = V^{\gamma} \cdot \left(1 + \lambda \cdot \text{max}(0, N - V)\right)$$
+
+<p align="center">
+  <img src="docs/brightness_wb_experiment.jpg" alt="Brightness and White Balance Correction Experiment" width="100%">
+</p>
 
 ---
 

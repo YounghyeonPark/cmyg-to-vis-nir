@@ -8,46 +8,48 @@ from .demosaic import interpolate_cmyg
 from .separation import convert_cmygp_to_rgbn, convert_cmyg_to_rgb
 from .denoising import denoise_rgb, denoise_nir
 
-def advanced_white_balance(rgb_img, method='shades_of_gray', p=6):
+def advanced_white_balance(rgb_img, method='grayworld', p=6):
     """
-    Advanced Auto White Balance Supporting:
-      - 'shades_of_gray': Minkowski p-norm based white balance (default p=6)
-      - 'whitepatch': Max-RGB color constancy algorithm
-      - 'grayworld': Standard Gray-World algorithm
+    Auto White Balance supporting percentile-constrained Gray World & Shades of Gray.
+    Prevents unnatural green/color cast by clipping channel scale gains within safe bounds [0.75, 1.4].
     """
-    img_float = rgb_img.astype(np.float64)
+    img_float = np.clip(rgb_img.astype(np.float64), 0.0, 1.0)
     awb_img = img_float.copy()
     
     if method == 'shades_of_gray':
-        # Minkowski p-norm illumination estimation
         norm_r = (np.mean(img_float[:, :, 0] ** p)) ** (1.0 / p)
         norm_g = (np.mean(img_float[:, :, 1] ** p)) ** (1.0 / p)
         norm_b = (np.mean(img_float[:, :, 2] ** p)) ** (1.0 / p)
         
         avg_norm = (norm_r + norm_g + norm_b) / 3.0
-        if norm_r > 0: awb_img[:, :, 0] *= (avg_norm / norm_r)
-        if norm_g > 0: awb_img[:, :, 1] *= (avg_norm / norm_g)
-        if norm_b > 0: awb_img[:, :, 2] *= (avg_norm / norm_b)
+        scale_r = np.clip(avg_norm / max(norm_r, 1e-5), 0.75, 1.4)
+        scale_g = np.clip(avg_norm / max(norm_g, 1e-5), 0.75, 1.4)
+        scale_b = np.clip(avg_norm / max(norm_b, 1e-5), 0.75, 1.4)
+        
+        awb_img[:, :, 0] *= scale_r
+        awb_img[:, :, 1] *= scale_g
+        awb_img[:, :, 2] *= scale_b
         
     elif method == 'whitepatch':
-        max_r = np.max(img_float[:, :, 0])
-        max_g = np.max(img_float[:, :, 1])
-        max_b = np.max(img_float[:, :, 2])
+        # Brightest 1% percentile white patch estimation
+        p_r = np.percentile(img_float[:, :, 0], 99)
+        p_g = np.percentile(img_float[:, :, 1], 99)
+        p_b = np.percentile(img_float[:, :, 2], 99)
         
-        target_max = (max_r + max_g + max_b) / 3.0
-        if max_r > 0: awb_img[:, :, 0] *= (target_max / max_r)
-        if max_g > 0: awb_img[:, :, 1] *= (target_max / max_g)
-        if max_b > 0: awb_img[:, :, 2] *= (target_max / max_b)
+        avg_p = (p_r + p_g + p_b) / 3.0
+        if p_r > 0: awb_img[:, :, 0] *= np.clip(avg_p / p_r, 0.75, 1.4)
+        if p_g > 0: awb_img[:, :, 1] *= np.clip(avg_p / p_g, 0.75, 1.4)
+        if p_b > 0: awb_img[:, :, 2] *= np.clip(avg_p / p_b, 0.75, 1.4)
         
-    elif method == 'grayworld':
+    else: # grayworld
         mean_r = np.mean(img_float[:, :, 0])
         mean_g = np.mean(img_float[:, :, 1])
         mean_b = np.mean(img_float[:, :, 2])
         
         avg_gray = (mean_r + mean_g + mean_b) / 3.0
-        if mean_r > 0: awb_img[:, :, 0] *= (avg_gray / mean_r)
-        if mean_g > 0: awb_img[:, :, 1] *= (avg_gray / mean_g)
-        if mean_b > 0: awb_img[:, :, 2] *= (avg_gray / mean_b)
+        if mean_r > 0: awb_img[:, :, 0] *= np.clip(avg_gray / mean_r, 0.75, 1.4)
+        if mean_g > 0: awb_img[:, :, 1] *= np.clip(avg_gray / mean_g, 0.75, 1.4)
+        if mean_b > 0: awb_img[:, :, 2] *= np.clip(avg_gray / mean_b, 0.75, 1.4)
         
     return np.clip(awb_img, 0.0, 1.0)
 
@@ -55,46 +57,45 @@ def auto_white_balance(rgb_img, method='grayworld'):
     """Backward compatible wrapper for Gray World AWB"""
     return advanced_white_balance(rgb_img, method=method)
 
-def correct_brightness_and_contrast(rgb_img, nir_img=None, gamma=0.8, lambda_nir=0.4, clip_limit=2.0):
+def correct_brightness_and_contrast(rgb_img, nir_img=None, gamma=0.7, lambda_nir=0.35, clip_limit=1.8):
     """
-    NIR-Guided Adaptive Brightness and Contrast Correction.
-    
-    Args:
-        rgb_img: Visible RGB image (float64 [0, 1])
-        nir_img: Corresponding NIR image (float64 [0, 1]) for luminance guidance
-        gamma: Gamma correction factor for base luminance
-        lambda_nir: Gain weight for NIR-guided dark region enhancement
-        clip_limit: CLAHE clip limit parameter for contrast enhancement
-        
-    Returns:
-        corrected_rgb: Brightness & contrast corrected RGB image (float64 [0, 1])
+    Chromaticity-Preserving NIR-Guided Adaptive Brightness and Contrast Correction.
+    Preserves RGB chromaticity ratios (R/I, G/I, B/I) to guarantee zero color cast distortion.
     """
-    rgb_uint8 = (np.clip(rgb_img, 0.0, 1.0) * 255.0).astype(np.uint8)
-    hsv = cv2.cvtColor(rgb_uint8, cv2.COLOR_RGB2HSV).astype(np.float64) / 255.0
-    v = hsv[:, :, 2]
+    img_float = np.clip(rgb_img.astype(np.float64), 0.0, 1.0)
     
-    # 1. Gamma correction on luminance V
-    v_gamma = np.power(v, gamma)
+    # 1. Compute Intensity I = (R + G + B) / 3
+    intensity = np.mean(img_float, axis=2)
+    safe_intensity = np.maximum(intensity, 1e-5)
     
-    # 2. Adaptive NIR-guided gain boost for under-exposed regions
+    # 2. Chromaticity Ratios (R/I, G/I, B/I)
+    chroma_r = img_float[:, :, 0] / safe_intensity
+    chroma_g = img_float[:, :, 1] / safe_intensity
+    chroma_b = img_float[:, :, 2] / safe_intensity
+    
+    # 3. Gamma enhancement on intensity
+    i_gamma = np.power(intensity, gamma)
+    
+    # 4. NIR-guided adaptive gain boost for under-exposed dark areas
     if nir_img is not None:
-        nir_norm = np.clip(nir_img, 0.0, 1.0)
-        gain_map = 1.0 + lambda_nir * np.maximum(0.0, nir_norm - v)
-        v_boost = v_gamma * gain_map
+        nir_norm = np.clip(nir_img.astype(np.float64), 0.0, 1.0)
+        gain_map = 1.0 + lambda_nir * np.maximum(0.0, nir_norm - intensity)
+        i_boost = i_gamma * gain_map
     else:
-        v_boost = v_gamma
+        i_boost = i_gamma
         
-    v_boost = np.clip(v_boost, 0.0, 1.0)
+    i_boost = np.clip(i_boost, 0.0, 1.0)
     
-    # 3. CLAHE Contrast enhancement
-    v_uint8 = (v_boost * 255.0).astype(np.uint8)
+    # 5. Contrast Limited Adaptive Histogram Equalization (CLAHE)
+    i_uint8 = (i_boost * 255.0).astype(np.uint8)
     clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(8, 8))
-    v_clahe = clahe.apply(v_uint8).astype(np.float64) / 255.0
+    i_clahe = clahe.apply(i_uint8).astype(np.float64) / 255.0
     
-    # 4. Reconstruct HSV and convert back to RGB
-    hsv[:, :, 2] = v_clahe
-    hsv_uint8 = (hsv * 255.0).astype(np.uint8)
-    corrected_rgb = cv2.cvtColor(hsv_uint8, cv2.COLOR_HSV2RGB).astype(np.float64) / 255.0
+    # 6. Multiply enhanced intensity back by original chromaticity
+    corrected_rgb = np.zeros_like(img_float)
+    corrected_rgb[:, :, 0] = i_clahe * chroma_r
+    corrected_rgb[:, :, 1] = i_clahe * chroma_g
+    corrected_rgb[:, :, 2] = i_clahe * chroma_b
     
     return np.clip(corrected_rgb, 0.0, 1.0)
 
@@ -121,7 +122,7 @@ def process_cmyg_image(bayer_raw, max_val=4095.0, denoise_method='guided', awb_m
     # Step 4: Advanced Auto White Balance
     rgb_awb = advanced_white_balance(filtered_rgb, method=awb_method)
     
-    # Step 5: NIR-Guided Adaptive Brightness Correction
+    # Step 5: Chromaticity-Preserving NIR-Guided Adaptive Brightness Correction
     if enhance_brightness:
         final_rgb = correct_brightness_and_contrast(rgb_awb, nir_img=filtered_nir)
     else:
