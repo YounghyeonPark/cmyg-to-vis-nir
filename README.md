@@ -29,7 +29,7 @@ This repository provides a method to acquire and separate **Visible (RGB)** and 
        ▼ (3. Guided Denoising)
 [Denoised RGB & NIR Images] 
        │
-       ▼ (4. Auto White Balance)
+       ▼ (4. Advanced AWB & NIR-Guided Brightness Correction)
 [Final High-Quality Visible RGB + NIR]
 ```
 
@@ -37,6 +37,19 @@ This repository provides a method to acquire and separate **Visible (RGB)** and 
 - **High Sensitivity**: Complementary CMYG filters pass more light and NIR spectrum than traditional RGB filters.
 - **Fast & Lightweight**: Matrix inversion signal transformation and Joint Guided Filtering allow real-time execution.
 - **High Reconstruction Quality**: Minimal color artifact and superior PSNR compared to traditional compressive sensing (SL0) methods.
+
+---
+
+## 💡 Visible Brightness & Advanced White Balance Correction
+
+Separated visible RGB images can suffer from low exposure and color cast under complex illuminations. We include an advanced enhancement module:
+1. **Advanced Auto White Balance**: Minkowski $p$-norm based **`Shades of Gray` ($p=6$)** and **`Max-RGB`** algorithms to eliminate illuminant color tint.
+2. **NIR-Guided Adaptive Brightness Correction**: Uses NIR intensity guidance to selectively boost under-exposed dark regions while preventing highlight clipping:
+   $$V_{guided} = V^{\gamma} \cdot \left(1 + \lambda \cdot \text{max}(0, N - V)\right)$$
+
+<p align="center">
+  <img src="docs/brightness_wb_experiment.jpg" alt="Brightness and White Balance Correction Experiment" width="100%">
+</p>
 
 ---
 
@@ -60,7 +73,8 @@ Below are representative separation results produced across multiple indoor and 
 ├── .gitignore                 # Output/temporary file filters
 ├── docs/                      # Teaser overview images & visual gallery
 │   ├── overview.jpg
-│   └── results_gallery.jpg
+│   ├── results_gallery.jpg
+│   └── brightness_wb_experiment.jpg
 │
 ├── python/                    # Python Implementation
 │   ├── cmyg_separation/       # Modular Python Package
@@ -75,6 +89,7 @@ Below are representative separation results produced across multiple indoor and 
 │   ├── run_evaluation.py      # SKKU vs EPFL benchmark script
 │   ├── run_hyperspectral_sim.py # Spectral sensitivity simulation
 │   ├── run_lowlight_enhancement.py # Low-light enhancement demo
+│   ├── run_brightness_wb_experiment.py # Brightness & AWB correction experiment
 │   └── requirements.txt       # Package requirements
 │
 └── matlab/                    # Complete MATLAB Implementation
@@ -97,12 +112,12 @@ Below are representative separation results produced across multiple indoor and 
    pip install -r requirements.txt
    ```
 
-2. **Run Python Demos**:
+2. **Run Python Demos & Experiments**:
    ```bash
    cd python
    python demo.py
+   python run_brightness_wb_experiment.py
    python run_evaluation.py
-   python run_lowlight_enhancement.py
    ```
 
 3. **Python Code Example**:
@@ -113,8 +128,14 @@ Below are representative separation results produced across multiple indoor and 
    # 1. Load Raw 12-bit CMYG PGM/RAW image
    raw_cmyg = cv2.imread("samples/sample_cmyg.pgm", cv2.IMREAD_UNCHANGED)
 
-   # 2. Process through separation pipeline
-   rgb_img, nir_img, mixed_img = process_cmyg_image(raw_cmyg, max_val=4095.0, denoise_method='guided')
+   # 2. Process through pipeline with Advanced AWB & NIR-guided Brightness correction
+   rgb_img, nir_img, mixed_img = process_cmyg_image(
+       raw_cmyg, 
+       max_val=4095.0, 
+       denoise_method='guided',
+       awb_method='shades_of_gray',
+       enhance_brightness=True
+   )
 
    # 3. Save separated results
    cv2.imwrite("output_rgb.jpg", cv2.cvtColor((rgb_img * 255).astype('uint8'), cv2.COLOR_RGB2BGR))
