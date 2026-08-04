@@ -11,6 +11,10 @@ matlab_output/
 *.png
 *.tiff
 *.tif
+
+# Whitelist docs and samples images
+!docs/*.jpg
+!docs/*.png
 !samples/*.jpg
 !samples/*.pgm
 
