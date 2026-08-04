@@ -61,7 +61,8 @@ Below are representative separation results produced across multiple indoor and 
 ├── docs/                      # Teaser overview images & visual gallery
 │   ├── overview.jpg
 │   ├── results_gallery.jpg
-│   └── brightness_wb_experiment.jpg
+│   ├── brightness_wb_experiment.jpg
+│   └── lowlight_enhancement_experiment.jpg
 │
 ├── python/                    # Python Implementation
 │   ├── cmyg_separation/       # Modular Python Package
@@ -103,30 +104,23 @@ Below are representative separation results produced across multiple indoor and 
    ```bash
    cd python
    python demo.py
+   python run_lowlight_enhancement.py
    python run_brightness_wb_experiment.py
-   python run_evaluation.py
    ```
 
 3. **Python Code Example**:
    ```python
    import cv2
-   from cmyg_separation import process_cmyg_image
+   from cmyg_separation import process_cmyg_image, enhance_lowlight_image
 
    # 1. Load Raw 12-bit CMYG PGM/RAW image
    raw_cmyg = cv2.imread("samples/sample_cmyg.pgm", cv2.IMREAD_UNCHANGED)
 
-   # 2. Process through pipeline with Advanced AWB & NIR-guided Brightness correction
-   rgb_img, nir_img, mixed_img = process_cmyg_image(
-       raw_cmyg, 
-       max_val=4095.0, 
-       denoise_method='guided',
-       awb_method='shades_of_gray',
-       enhance_brightness=True
-   )
+   # 2. Process through pipeline
+   rgb_img, nir_img, mixed_img = process_cmyg_image(raw_cmyg, max_val=4095.0, denoise_method='guided')
 
-   # 3. Save separated results
-   cv2.imwrite("output_rgb.jpg", cv2.cvtColor((rgb_img * 255).astype('uint8'), cv2.COLOR_RGB2BGR))
-   cv2.imwrite("output_nir.jpg", (nir_img * 255).astype('uint8'))
+   # 3. Enhance low-light visible RGB using high-SNR NIR guidance
+   enhanced_rgb = enhance_lowlight_image(rgb_img, nir_img)
    ```
 
 ---
@@ -143,12 +137,18 @@ Below are representative separation results produced across multiple indoor and 
 
 ## 💡 Experimental Modules & Extensions
 
-### Visible Brightness & Advanced White Balance Correction
+### 1. NIR-Assisted Low-Light Image Enhancement
+In extremely dark environments where visible RGB signals have low SNR, the NIR spectrum provides high-SNR structural details. This module fuses the separated NIR luminance & high-frequency detail into the visible RGB image:
 
+<p align="center">
+  <img src="docs/lowlight_enhancement_experiment.jpg" alt="Low Light Enhancement Experiment" width="100%">
+</p>
+
+### 2. Visible Brightness & Advanced White Balance Correction
 Separated visible RGB images can suffer from low exposure and color cast under complex illuminations. We include an advanced enhancement module:
-1. **Advanced Auto White Balance**: Minkowski $p$-norm based **`Shades of Gray` ($p=6$)** and **`Max-RGB`** algorithms to eliminate illuminant color tint.
-2. **Chromaticity-Preserving NIR-Guided Brightness Correction**: Preserves natural $R/I, G/I, B/I$ chromaticity ratios while adaptively boosting under-exposed dark regions guided by NIR signal:
-   $$V_{guided} = V^{\gamma} \cdot \left(1 + \lambda \cdot \text{max}(0, N - V)\right)$$
+- **Advanced Auto White Balance**: Minkowski $p$-norm based **`Shades of Gray` ($p=6$)** and **`Max-RGB`** algorithms.
+- **Chromaticity-Preserving NIR-Guided Brightness Correction**: Preserves natural chromaticity ratios ($R/I, G/I, B/I$) while adaptively boosting under-exposed dark regions guided by NIR signal:
+  $$V_{guided} = V^{\gamma} \cdot \left(1 + \lambda \cdot \text{max}(0, N - V)\right)$$
 
 <p align="center">
   <img src="docs/brightness_wb_experiment.jpg" alt="Brightness and White Balance Correction Experiment" width="100%">
