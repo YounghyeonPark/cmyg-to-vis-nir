@@ -53,7 +53,7 @@ def lowlight_region_colorcorrection(img_rgb, blk_size=4, top_ratio=0.1, threshol
     return np.clip(img_out[:h, :w, :], 0.0, 1.0)
 
 
-def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boost=1.4, target_brightness=0.22, max_gain=3.0, use_top10_colorcorrection=True):
+def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boost=2.2, target_brightness=0.25, max_gain=3.5, use_top10_colorcorrection=True):
     """
     High-SNR YCrCb Luminance Fusion & Guided Chrominance Low-Light Image Enhancement.
     
@@ -62,13 +62,13 @@ def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boos
         nir_img: Separated NIR image (float64 [0, 1])
         mixed_rgb: CMYG raw mixed reference image (float64 [0, 1])
         alpha: Luminance fusion weight
-        sat_boost: Chrominance saturation boost multiplier
-        target_brightness: Target mean luminance level (default: 0.22 for realistic natural exposure)
-        max_gain: Maximum luminance boost gain cap (default: 3.0)
+        sat_boost: Chrominance saturation boost multiplier (default: 2.2 for rich vivid colors)
+        target_brightness: Target mean luminance level (default: 0.25)
+        max_gain: Maximum luminance boost gain cap (default: 3.5)
         use_top10_colorcorrection: Apply block-wise top 10% chromaticity extraction
         
     Returns:
-        enhanced_rgb: High-contrast, naturally exposed low-light visible RGB image (float64 [0, 1])
+        enhanced_rgb: High-contrast, vividly color-enhanced low-light visible RGB image (float64 [0, 1])
     """
     sep_rgb = np.clip(rgb_img.astype(np.float64), 0.0, 1.0)
     
@@ -95,7 +95,7 @@ def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boos
     mean_my = np.mean(m_yuv[:, :, 0])
     if mean_my > 0 and mean_my < target_brightness:
         grayfactor = min(target_brightness / max(mean_my, 1e-4), max_gain)
-        mixed_y = np.power(np.clip(m_yuv[:, :, 0] * grayfactor, 0.0, 1.0), 0.85)
+        mixed_y = np.power(np.clip(m_yuv[:, :, 0] * grayfactor, 0.0, 1.0), 0.80)
     else:
         mixed_y = m_yuv[:, :, 0]
         
@@ -116,6 +116,11 @@ def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boos
     
     comb_rgb = cv2.cvtColor((comb_yuv * 255.0).astype(np.uint8), cv2.COLOR_YCrCb2RGB).astype(np.float64) / 255.0
     
-    # 8. Final Auto White Balance
-    final_rgb = advanced_white_balance(comb_rgb, method='shades_of_gray')
+    # 8. Extra HSV saturation boost for rich vivid colors
+    hsv = cv2.cvtColor((comb_rgb * 255.0).astype(np.uint8), cv2.COLOR_RGB2HSV).astype(np.float64) / 255.0
+    hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.4, 0.0, 1.0)
+    comb_vibrant = cv2.cvtColor((hsv * 255.0).astype(np.uint8), cv2.COLOR_HSV2RGB).astype(np.float64) / 255.0
+    
+    # 9. Final Auto White Balance
+    final_rgb = advanced_white_balance(comb_vibrant, method='shades_of_gray')
     return np.clip(final_rgb, 0.0, 1.0)
