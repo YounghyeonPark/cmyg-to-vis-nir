@@ -53,16 +53,16 @@ def lowlight_region_colorcorrection(img_rgb, blk_size=4, top_ratio=0.1, threshol
     return np.clip(img_out[:h, :w, :], 0.0, 1.0)
 
 
-def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boost=2.6, target_brightness=0.28, max_gain=4.0, use_top10_colorcorrection=True):
+def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boost=2.8, target_brightness=0.28, max_gain=4.0, use_top10_colorcorrection=True):
     """
-    High-SNR Floating-Point Chromaticity Preservation & Guided Low-Light Image Enhancement.
+    High-SNR Soft-Knee Non-Saturating Luma Compression & Guided Low-Light Image Enhancement.
     
     Args:
         rgb_img: Separated visible RGB image (float64 [0, 1])
         nir_img: Separated NIR image (float64 [0, 1])
         mixed_rgb: CMYG raw mixed reference image (float64 [0, 1])
         alpha: Luminance fusion weight
-        sat_boost: Chrominance saturation boost multiplier (default: 2.6 for ultra-vivid colors)
+        sat_boost: Chrominance saturation boost multiplier (default: 2.8 for ultra-rich vivid colors)
         target_brightness: Target mean luminance level (default: 0.28)
         max_gain: Maximum luminance boost gain cap (default: 4.0)
         use_top10_colorcorrection: Apply block-wise top 10% chromaticity extraction
@@ -97,14 +97,21 @@ def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boos
     c_yuv = cv2.cvtColor((sep_rgb_awb * 255.0).astype(np.uint8), cv2.COLOR_RGB2YCrCb).astype(np.float64) / 255.0
     m_yuv = cv2.cvtColor((mixed_rgb_awb * 255.0).astype(np.uint8), cv2.COLOR_RGB2YCrCb).astype(np.float64) / 255.0
     
-    # 5. Controlled Natural Luminance Adaptive Scaling
-    mean_my = np.mean(m_yuv[:, :, 0])
+    # 5. Soft-Knee Non-Saturating Luma Compression (Reinhard Tone-Mapping)
+    # Prevents Luma from saturating/clipping at highlight peaks (white blow-outs)
+    raw_y = m_yuv[:, :, 0]
+    mean_my = np.mean(raw_y)
     if mean_my > 0 and mean_my < target_brightness:
         grayfactor = min(target_brightness / max(mean_my, 1e-4), max_gain)
-        mixed_y = np.power(np.clip(m_yuv[:, :, 0] * grayfactor, 0.0, 1.0), 0.80)
+        y_boosted = raw_y * grayfactor
+        # Soft-knee compression: Y_compressed = Y / (1 + Y / 2.5) smoothly compresses highlights
+        mixed_y = y_boosted / (1.0 + y_boosted / 2.5)
+        mixed_y = np.power(mixed_y, 0.85)
     else:
-        mixed_y = m_yuv[:, :, 0]
+        mixed_y = raw_y
         
+    mixed_y = np.clip(mixed_y, 0.0, 0.95)  # Cap maximum luma to 0.95 to strictly prevent saturation
+    
     # 6. Guided Filtering on Chrominance Channels (Cr, Cb) using mixed_rgb R channel
     guide = mixed_rgb[:, :, 0]
     cr_clean = guided_filter(guide, c_yuv[:, :, 1], radius=20, eps=1e-2)
@@ -116,15 +123,15 @@ def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boos
     
     # 8. Reconstruct YCrCb -> RGB
     comb_yuv = np.zeros_like(m_yuv)
-    comb_yuv[:, :, 0] = np.clip(mixed_y, 0.0, 1.0)
+    comb_yuv[:, :, 0] = mixed_y
     comb_yuv[:, :, 1] = cr_boosted
     comb_yuv[:, :, 2] = cb_boosted
     
     comb_rgb = cv2.cvtColor((comb_yuv * 255.0).astype(np.uint8), cv2.COLOR_YCrCb2RGB).astype(np.float64) / 255.0
     
-    # 9. Extra HSV saturation boost for rich vivid colors
+    # 9. Extra HSV saturation boost (1.6x) for rich vivid colors
     hsv = cv2.cvtColor((comb_rgb * 255.0).astype(np.uint8), cv2.COLOR_RGB2HSV).astype(np.float64) / 255.0
-    hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.5, 0.0, 1.0)
+    hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.6, 0.0, 1.0)
     comb_vibrant = cv2.cvtColor((hsv * 255.0).astype(np.uint8), cv2.COLOR_HSV2RGB).astype(np.float64) / 255.0
     
     # 10. Final Auto White Balance
