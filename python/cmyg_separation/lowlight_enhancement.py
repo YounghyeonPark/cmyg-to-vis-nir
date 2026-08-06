@@ -53,26 +53,26 @@ def lowlight_region_colorcorrection(img_rgb, blk_size=4, top_ratio=0.1, threshol
     return np.clip(img_out[:h, :w, :], 0.0, 1.0)
 
 
-def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boost=1.85, target_brightness=0.25, max_gain=3.5, use_top10_colorcorrection=True):
+def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boost=2.2, target_brightness=0.25, max_gain=3.5, use_top10_colorcorrection=True):
     """
-    Chrominance Purity-Adaptive Saturation Boosting Low-Light Enhancement.
+    Smooth Bilateral-Guided Chrominance Saturation Low-Light Image Enhancement.
     Refers strictly to MATLAB `script_CMYG_to_RGB_NIR1_20150616_7.m` & `lowlight_region_colorcorrection.m`.
     
-    Boosts saturation of true-colored objects (grass green, pig snout pink, flower yellow)
-    while preserving neutral grey/white surfaces without false-color splotches.
+    Preserves subtle chromaticity across object bodies (e.g., cyan/teal sheen on piggybank body,
+    pink nose, green leaves, red roofs) while smoothing out pixel-level noise splotches.
     
     Args:
         rgb_img: Separated visible RGB image (float64 [0, 1])
         nir_img: Separated NIR image (float64 [0, 1])
         mixed_rgb: CMYG raw mixed reference image (float64 [0, 1])
         alpha: Luminance fusion weight
-        sat_boost: Chrominance purity-adaptive saturation boost multiplier (default: 1.85)
+        sat_boost: Chrominance saturation boost multiplier (default: 2.2)
         target_brightness: Target mean luminance level (default: 0.25)
         max_gain: Maximum luminance boost gain cap (default: 3.5)
         use_top10_colorcorrection: Apply block-wise top 10% chromaticity extraction
         
     Returns:
-        enhanced_rgb: Authentically vivid, splotch-free low-light RGB image (float64 [0, 1])
+        enhanced_rgb: Smoothly color-restored low-light RGB image (float64 [0, 1])
     """
     sep_rgb = np.clip(rgb_img.astype(np.float64), 0.0, 1.0)
     
@@ -108,24 +108,21 @@ def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boos
         
     mixed_y = np.clip(mixed_y, 0.0, 0.95)
     
-    # 5. Large-Radius Structural Guided Filtering on Chrominance (Cr, Cb)
+    # 5. Bilateral spatial smoothing on chrominance to preserve body colors without splotches
+    cr_u8 = (c_yuv[:, :, 1] * 255.0).astype(np.uint8)
+    cb_u8 = (c_yuv[:, :, 2] * 255.0).astype(np.uint8)
+    
+    cr_bilat = cv2.bilateralFilter(cr_u8, 15, 35, 15).astype(np.float64) / 255.0
+    cb_bilat = cv2.bilateralFilter(cb_u8, 15, 35, 15).astype(np.float64) / 255.0
+    
+    # Structural Guided Filter
     guide = mixed_rgb_awb[:, :, 0]
-    cr_clean = guided_filter(guide, c_yuv[:, :, 1], radius=30, eps=1e-2)
-    cb_clean = guided_filter(guide, c_yuv[:, :, 2], radius=30, eps=1e-2)
+    cr_clean = guided_filter(guide, cr_bilat, radius=25, eps=1e-2)
+    cb_clean = guided_filter(guide, cb_bilat, radius=25, eps=1e-2)
     
-    # Consensus guided filtering against mixed_rgb chrominance
-    cr_clean = guided_filter(m_yuv[:, :, 1], cr_clean, radius=30, eps=1e-2)
-    cb_clean = guided_filter(m_yuv[:, :, 2], cb_clean, radius=30, eps=1e-2)
-    
-    # 6. Chromatic Purity Distance D = sqrt((Cr - 0.5)^2 + (Cb - 0.5)^2)
-    dist_chroma = np.sqrt((cr_clean - 0.5)**2 + (cb_clean - 0.5)**2)
-    purity_mask = np.clip((dist_chroma - 0.012) / 0.038, 0.0, 1.0)
-    
-    # Apply purity-weighted adaptive saturation boost
-    adaptive_boost = 1.0 + (sat_boost - 1.0) * purity_mask
-    
-    cr_boosted = np.clip(0.5 + (cr_clean - 0.5) * adaptive_boost, 0.0, 1.0)
-    cb_boosted = np.clip(0.5 + (cb_clean - 0.5) * adaptive_boost, 0.0, 1.0)
+    # 6. Smooth Chrominance Saturation Boost
+    cr_boosted = np.clip(0.5 + (cr_clean - 0.5) * sat_boost, 0.0, 1.0)
+    cb_boosted = np.clip(0.5 + (cb_clean - 0.5) * sat_boost, 0.0, 1.0)
     
     # 7. Reconstruct YCrCb -> RGB
     comb_yuv = np.zeros_like(m_yuv)
@@ -135,9 +132,9 @@ def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boos
     
     comb_rgb = cv2.cvtColor((comb_yuv * 255.0).astype(np.uint8), cv2.COLOR_YCrCb2RGB).astype(np.float64) / 255.0
     
-    # 8. Selective HSV saturation boost for pure colors
+    # 8. Smooth HSV Saturation Enhancement
     hsv = cv2.cvtColor((comb_rgb * 255.0).astype(np.uint8), cv2.COLOR_RGB2HSV).astype(np.float64) / 255.0
-    hsv[:, :, 1] = np.clip(hsv[:, :, 1] * (1.0 + 0.45 * purity_mask), 0.0, 1.0)
+    hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.35, 0.0, 1.0)
     comb_vibrant = cv2.cvtColor((hsv * 255.0).astype(np.uint8), cv2.COLOR_HSV2RGB).astype(np.float64) / 255.0
     
     # 9. Final Auto White Balance
