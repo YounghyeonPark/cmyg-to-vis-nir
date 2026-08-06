@@ -53,26 +53,26 @@ def lowlight_region_colorcorrection(img_rgb, blk_size=4, top_ratio=0.15, thresho
     return np.clip(img_out[:h, :w, :], 0.0, 1.0)
 
 
-def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boost=2.5, target_brightness=0.28, max_gain=4.0, use_top10_colorcorrection=True):
+def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boost=1.55, target_brightness=0.28, max_gain=3.5, use_top10_colorcorrection=True):
     """
-    Pure 64-bit Floating-Point Chrominance Pipeline Low-Light Image Enhancement.
+    Balanced Natural Low-Light Image Enhancement.
     Refers strictly to MATLAB `script_CMYG_to_RGB_NIR1_20150616_7.m` & `lowlight_region_colorcorrection.m`.
     
-    Bypasses 8-bit integer quantization loss on dark chromaticities, fully preserving true
-    vibrant colors (e.g. golden yellow flower petals, cyan/teal pig body, pink snout, green leaves).
+    Uses pure 64-bit float64 chrominance pipeline with balanced natural saturation scaling (sat_boost=1.55),
+    preventing both low-light desaturation loss and radioactive over-saturation.
     
     Args:
         rgb_img: Separated visible RGB image (float64 [0, 1])
         nir_img: Separated NIR image (float64 [0, 1])
         mixed_rgb: CMYG raw mixed reference image (float64 [0, 1])
         alpha: Luminance fusion weight
-        sat_boost: Chrominance saturation boost multiplier (default: 2.5)
+        sat_boost: Natural chrominance saturation boost multiplier (default: 1.55)
         target_brightness: Target mean luminance level (default: 0.28)
-        max_gain: Maximum luminance boost gain cap (default: 4.0)
+        max_gain: Maximum luminance boost gain cap (default: 3.5)
         use_top10_colorcorrection: Apply block-wise top chromaticity extraction
         
     Returns:
-        enhanced_rgb: Authentically vibrant, splotch-free low-light RGB image (float64 [0, 1])
+        enhanced_rgb: Naturally balanced, authentic, low-light RGB image (float64 [0, 1])
     """
     sep_rgb = rgb_img.astype(np.float64)
     
@@ -96,7 +96,7 @@ def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boos
     chroma_awb = advanced_white_balance(float_chroma_corr, method='shades_of_gray')
     mixed_awb = advanced_white_balance(mixed_rgb, method='shades_of_gray')
     
-    # 3. YCrCb in Pure 64-bit Float64 (NO uint8 quantization!)
+    # 3. YCrCb in Pure 64-bit Float64
     R = chroma_awb[:, :, 0]
     G = chroma_awb[:, :, 1]
     B = chroma_awb[:, :, 2]
@@ -124,7 +124,7 @@ def enhance_lowlight_image(rgb_img, nir_img, mixed_rgb=None, alpha=0.5, sat_boos
     cr_clean = guided_filter(guide, cr_bilat, radius=20, eps=1e-2)
     cb_clean = guided_filter(guide, cb_bilat, radius=20, eps=1e-2)
     
-    # 6. Saturation boost in float64 YCrCb
+    # 6. Natural Saturation Boost in float64 YCrCb (balanced sat_boost = 1.55)
     cr_boosted = np.clip(0.5 + (cr_clean - 0.5) * sat_boost, 0.0, 1.0)
     cb_boosted = np.clip(0.5 + (cb_clean - 0.5) * sat_boost, 0.0, 1.0)
     
